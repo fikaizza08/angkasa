@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misi Astronot: Garis Bilangan Bulat</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #050515;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            padding: 10px;
+        }
+
+        /* Container dengan Rasio 16:9 Responsif */
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 960px;
+            aspect-ratio: 16 / 9;
+            max-height: 94vh;
+            background: #080718 url('https://i.imgur.com/QdDPQXl.png') center/cover no-repeat;
+            border-radius: 16px;
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 2px solid #2a2d5a;
+        }
+
+        /* Top UI Header */
+        #ui-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2% 4%;
+            background: rgba(15, 20, 45, 0.85);
+            border-bottom: 2px solid #2a2d5a;
+            z-index: 10;
+            height: 14%;
+        }
+
+        .stat-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: clamp(12px, 2vw, 16px);
+            font-weight: bold;
+            text-shadow: 0 0 8px rgba(255,255,255,0.5);
+        }
+
+        .oxygen-container {
+            display: flex;
+            gap: 4px;
+        }
+
+        .oxygen-tank {
+            width: clamp(12px, 1.8vw, 18px);
+            height: clamp(18px, 2.5vw, 24px);
+            background-color: #00e5ff;
+            border-radius: 4px;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 8px #00e5ff;
+            transition: all 0.3s ease;
+        }
+
+        .oxygen-tank.empty {
+            background-color: #333344;
+            border-color: #666677;
+            box-shadow: none;
+        }
+
+        /* Canvas Game Display */
+        #canvas-container {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            height: 56%;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Bottom UI Controls */
+        #ui-bottom {
+            background: rgba(15, 20, 45, 0.95);
+            padding: 2% 3%;
+            border-top: 2px solid #2a2d5a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            z-index: 10;
+            height: 30%;
+        }
+
+        #question-card {
+            background: linear-gradient(135deg, #1e254e, #111533);
+            border: 2px solid #00e5ff;
+            border-radius: 10px;
+            padding: 6px 16px;
+            text-align: center;
+            box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
+            width: 100%;
+            max-width: 800px;
+        }
+
+        #question-title {
+            font-size: clamp(10px, 1.3vw, 12px);
+            color: #a0aabf;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+
+        #question-text {
+            font-size: clamp(13px, 1.8vw, 17px);
+            font-weight: bold;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #options-container {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            max-width: 800px;
+            justify-content: center;
+        }
+
+        .btn-option {
+            flex: 1;
+            padding: clamp(8px, 1.2vw, 12px) 6px;
+            font-size: clamp(13px, 1.7vw, 17px);
+            font-weight: bold;
+            color: #ffffff;
+            background: linear-gradient(180deg, #2b3970 0%, #192248 100%);
+            border: 2px solid #4d62ad;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-option:hover {
+            background: linear-gradient(180deg, #3d5099 0%, #222e61 100%);
+            border-color: #00e5ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 229, 255, 0.4);
+        }
+
+        .btn-option:active {
+            transform: translateY(1px);
+        }
+
+        .btn-option:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            border-color: #444;
+        }
+
+        /* Overlay Dialog Modals */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 20, 0.88);
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: #151a3a;
+            border: 3px solid #00e5ff;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.4);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .modal-title {
+            font-size: clamp(20px, 3vw, 24px);
+            color: #00e5ff;
+            font-weight: bold;
+        }
+
+        .modal-desc {
+            font-size: clamp(12px, 1.8vw, 15px);
+            line-height: 1.4;
+            color: #d1d9f0;
+        }
+
+        .btn-action {
+            background: linear-gradient(180deg, #00e5ff 0%, #0088cc 100%);
+            color: #050515;
+            font-size: clamp(14px, 2vw, 17px);
+            font-weight: bold;
+            padding: 10px 28px;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+            transition: all 0.2s ease;
+        }
+
+        .btn-action:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.8);
+        }
+
+        /* Toast Feedback */
+        #toast-feedback {
+            position: absolute;
+            top: 18%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: rgba(10, 15, 35, 0.95);
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: clamp(12px, 1.8vw, 16px);
+            font-weight: bold;
+            z-index: 20;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        #toast-feedback.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        #toast-feedback.correct {
+            border: 2px solid #00ff88;
+            color: #00ff88;
+        }
+
+        #toast-feedback.wrong {
+            border: 2px solid #ff4466;
+            color: #ff4466;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- Top Stats Bar -->
+        <div id="ui-top">
+            <div class="stat-box">
+                <span>MISI:</span>
+                <span id="level-txt" style="color: #00e5ff;">LVL 1</span>
+            </div>
+            <div class="stat-box">
+                <span>SKOR:</span>
+                <span id="score-txt" style="color: #ffcc00;">0</span>
+            </div>
+            <div class="stat-box">
+                <span>OKSIGEN:</span>
+                <div class="oxygen-container" id="oxygen-box">
+                    <div class="oxygen-tank"></div>
+                    <div class="oxygen-tank"></div>
+                    <div class="oxygen-tank"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas Game Screen -->
+        <div id="canvas-container">
+            <canvas id="gameCanvas"></canvas>
+            <div id="toast-feedback">Pesan Feedback</div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div id="ui-bottom">
+            <div id="question-card">
+                <div id="question-title">INSTRUKSI ASTRONOT</div>
+                <div id="question-text">Memuat pertanyaan...</div>
+            </div>
+            <div id="options-container">
+                <button class="btn-option" id="opt-0" onclick="handleAnswer(0)">-</button>
+                <button class="btn-option" id="opt-1" onclick="handleAnswer(1)">-</button>
+                <button class="btn-option" id="opt-2" onclick="handleAnswer(2)">-</button>
+            </div>
+        </div>
+
+        <!-- Start Overlay Modal -->
+        <div class="modal-overlay active" id="modal-start">
+            <div class="modal-card">
+                <div class="modal-title">🚀 EKSPLORASI GARIS BILANGAN</div>
+                <div class="modal-desc">
+                    Halo Astronot! Bantu navigasi roket ruang angkasa menggunakan pendorong bilangan bulat.<br><br>
+                    • <b>Maju ke Kanan</b> = Bilangan Positif (+)<br>
+                    • <b>Mundur ke Kiri</b> = Bilangan Negatif (-)<br><br>
+                    Selesaikan semua misi dan kumpulkan poin energi!
+                </div>
+                <button class="btn-action" onclick="startGame()">Mulai Misi!</button>
+            </div>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div class="modal-overlay" id="modal-gameover">
+            <div class="modal-card">
+                <div class="modal-title" style="color: #ff4466;">⚠️ OKSIGEN HABIS!</div>
+                <div class="modal-desc" id="gameover-desc">
+                    Astronot kehabisan pasokan oksigen di ruang angkasa.
+                </div>
+                <button class="btn-action" onclick="restartGame()">Coba Lagi</button>
+            </div>
+        </div>
+
+        <!-- Victory Modal -->
+        <div class="modal-overlay" id="modal-victory">
+            <div class="modal-card">
+                <div class="modal-title" style="color: #00ff88;">🏆 MISI SUKSES!</div>
+                <div class="modal-desc" id="victory-desc">
+                    Hebat! Kamu telah menguasai penjumlahan bilangan bulat positif dan negatif!
+                </div>
+                <button class="btn-action" onclick="restartGame()">Main Lagi</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- AUDIO SYNTHESIS (SFX) ---
+        const AudioFX = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            },
+            playTone(freq, type, duration) {
+                if (!this.ctx) return;
+                try {
+                    let osc = this.ctx.createOscillator();
+                    let gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e){}
+            },
+            correct() {
+                this.init();
+                this.playTone(523.25, 'triangle', 0.15); // C5
+                setTimeout(() => this.playTone(659.25, 'triangle', 0.3), 120); // E5
+            },
+            wrong() {
+                this.init();
+                this.playTone(220, 'sawtooth', 0.2); // A3
+                setTimeout(() => this.playTone(180, 'sawtooth', 0.3), 150);
+            },
+            move() {
+                this.init();
+                this.playTone(300, 'sine', 0.08);
+            }
+        };
+
+        // --- GAME ENGINE & STATE ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Background Image Setup
+        const bgImage = new Image();
+        bgImage.crossOrigin = 'anonymous';
+        bgImage.src = 'https://i.imgur.com/QdDPQXl.png';
+        let bgLoaded = false;
+        bgImage.onload = () => { bgLoaded = true; };
+
+        let gameState = {
+            score: 0,
+            lives: 3,
+            level: 1,
+            astronautPos: 0,
+            targetPos: 0,
+            stormOffset: 0,
+            isAnimating: false,
+            currentQuestion: null,
+            stars: []
+        };
+
+        // Canvas Responsive Setup
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            if (container) {
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // Background Stars Initialization
+        for (let i = 0; i < 70; i++) {
+            gameState.stars.push({
+                x: Math.random(),
+                y: Math.random(),
+                size: Math.random() * 2 + 0.5,
+                alpha: Math.random()
+            });
+        }
+
+        // --- LEVEL DEFINITIONS ---
+        const levels = [
+            { level: 1, title: "Penjumlahan Positif", type: "pos_pos" },
+            { level: 2, title: "Badai Antariksa (Positif + Negatif)", type: "pos_neg" },
+            { level: 3, title: "Gravitasi Lubang Hitam (Negatif + Negatif)", type: "neg_neg" },
+            { level: 4, title: "Tantangan Campuran 1", type: "mix" },
+            { level: 5, title: "Tantangan Campuran 2", type: "mix" }
+        ];
+
+        let renderAstronautPos = 0;
+        let targetRenderPos = 0;
+
+        function generateQuestion() {
+            let currentLvlObj = levels[Math.min(gameState.level - 1, levels.length - 1)];
+            let start, storm, target, options, qText, qTitle;
+
+            if (currentLvlObj.type === "pos_pos") {
+                start = Math.floor(Math.random() * 4); // 0 to 3
+                let add = Math.floor(Math.random() * 5) + 2; // +2 to +6
+                target = start + add;
+                storm = 0;
+                
+                qTitle = "MISI 1: DORONGAN POSITIF";
+                qText = `Astronot di posisi +${start}. Buka pendorong (+) untuk mencapai Stasiun di +${target}!`;
+                
+                let correctOpt = add;
+                options = [correctOpt, correctOpt + 2, Math.max(1, correctOpt - 2)];
+            } 
+            else if (currentLvlObj.type === "pos_neg") {
+                start = Math.floor(Math.random() * 4) + 3; // +3 to +6
+                storm = -(Math.floor(Math.random() * 4) + 4); // -4 to -7
+                let landedAt = start + storm;
+                target = Math.floor(Math.random() * 4) + 1; // +1 to +4
+                
+                let needed = target - landedAt;
+                
+                qTitle = "MISI 2: BADAI MENDORONG MUNDUR";
+                qText = `Badai terdorong ${storm}! Posisi astronot sekarang (${landedAt}). Berapa pendorong (+) ke titik aman +${target}?`;
+                
+                options = [needed, needed - 1, needed + 2];
+                start = landedAt;
+            } 
+            else if (currentLvlObj.type === "neg_neg") {
+                let startPos = -(Math.floor(Math.random() * 3) + 1); // -1 to -3
+                let pull = -(Math.floor(Math.random() * 4) + 2); // -2 to -5
+                target = startPos + pull;
+                storm = 0;
+                
+                qTitle = "MISI 3: GRAVITASI LUBANG HITAM";
+                qText = `Terjebak di (${startPos}) lalu ditarik gravitasi (${pull}). Hitung: (${startPos}) + (${pull}) = ...?`;
+                
+                options = [target, target + 2, target - 2];
+                start = startPos;
+            }
+            else {
+                start = Math.floor(Math.random() * 11) - 5; // -5 to +5
+                let delta = Math.floor(Math.random() * 11) - 5;
+                if (delta === 0) delta = 3;
+                target = start + delta;
+                if (target > 10) target = 10;
+                if (target < -10) target = -10;
+                delta = target - start;
+
+                qTitle = `MISI ${gameState.level}: TANTANGAN NAVIGASI`;
+                qText = `Posisi Astronot: ${start > 0 ? '+'+start : start}. Target Tujuan: ${target > 0 ? '+'+target : target}. Berapa Pendorong?`;
+                options = [delta, delta + (delta > 0 ? -2 : 2), delta + (delta > 0 ? 3 : -3)];
+            }
+
+            options = [...new Set(options)].sort(() => Math.random() - 0.5);
+            while (options.length < 3) {
+                options.push(target + options.length);
+                options = [...new Set(options)];
+            }
+
+            gameState.astronautPos = start;
+            gameState.targetPos = target;
+            renderAstronautPos = start;
+            targetRenderPos = start;
+
+            gameState.currentQuestion = {
+                title: qTitle,
+                text: qText,
+                options: options,
+                correctVal: (currentLvlObj.type === "neg_neg") ? target : (target - start),
+                startPos: start,
+                targetPos: target
+            };
+
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById('level-txt').innerText = `LVL ${gameState.level}`;
+            document.getElementById('score-txt').innerText = gameState.score;
+            
+            const tanks = document.querySelectorAll('.oxygen-tank');
+            tanks.forEach((tank, idx) => {
+                if (idx < gameState.lives) {
+                    tank.classList.remove('empty');
+                } else {
+                    tank.classList.add('empty');
+                }
+            });
+
+            if (gameState.currentQuestion) {
+                document.getElementById('question-title').innerText = gameState.currentQuestion.title;
+                document.getElementById('question-text').innerText = gameState.currentQuestion.text;
+
+                gameState.currentQuestion.options.forEach((opt, idx) => {
+                    const btn = document.getElementById(`opt-${idx}`);
+                    btn.disabled = false;
+                    let prefix = opt > 0 ? "+" : "";
+                    btn.innerHTML = `🚀 Pendorong ${prefix}${opt}`;
+                    btn.setAttribute('data-val', opt);
+                });
+            }
+        }
+
+        // --- ANSWER HANDLING ---
+        function handleAnswer(optionIdx) {
+            if (gameState.isAnimating) return;
+
+            const selectedBtn = document.getElementById(`opt-${optionIdx}`);
+            const chosenVal = parseInt(selectedBtn.getAttribute('data-val'));
+            const q = gameState.currentQuestion;
+
+            for (let i = 0; i < 3; i++) {
+                document.getElementById(`opt-${i}`).disabled = true;
+            }
+
+            let destination;
+            if (levels[Math.min(gameState.level - 1, levels.length - 1)].type === "neg_neg") {
+                destination = chosenVal;
+            } else {
+                destination = q.startPos + chosenVal;
+            }
+
+            destination = Math.max(-10, Math.min(10, destination));
+
+            gameState.isAnimating = true;
+            targetRenderPos = destination;
+            AudioFX.move();
+
+            setTimeout(() => {
+                gameState.isAnimating = false;
+                
+                let isCorrect = (destination === q.targetPos);
+
+                if (isCorrect) {
+                    AudioFX.correct();
+                    showToast(`HEBAT! Benar! (${q.startPos > 0 ? '+'+q.startPos : q.startPos}) + (${chosenVal > 0 ? '+'+chosenVal : chosenVal}) = ${q.targetPos > 0 ? '+'+q.targetPos : q.targetPos}`, 'correct');
+                    gameState.score += 100;
+
+                    setTimeout(() => {
+                        gameState.level++;
+                        if (gameState.level > 5) {
+                            showModal('modal-victory');
+                        } else {
+                            generateQuestion();
+                        }
+                    }, 1800);
+
+                } else {
+                    AudioFX.wrong();
+                    gameState.lives--;
+                    
+                    let hint = `Opps! Mendarat di ${destination > 0 ? '+'+destination : destination}. Target di ${q.targetPos > 0 ? '+'+q.targetPos : q.targetPos}!`;
+                    showToast(hint, 'wrong');
+
+                    updateUI();
+
+                    if (gameState.lives <= 0) {
+                        setTimeout(() => showModal('modal-gameover'), 1800);
+                    } else {
+                        setTimeout(() => {
+                            targetRenderPos = q.startPos;
+                            AudioFX.move();
+                            setTimeout(() => {
+                                for (let i = 0; i < 3; i++) {
+                                    document.getElementById(`opt-${i}`).disabled = false;
+                                }
+                            }, 500);
+                        }, 1800);
+                    }
+                }
+            }, 1200);
+        }
+
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast-feedback');
+            toast.innerText = msg;
+            toast.className = `show ${type}`;
+            setTimeout(() => {
+                toast.className = '';
+            }, 2500);
+        }
+
+        // --- RENDER LOOP (CANVAS) ---
+        function draw() {
+            resizeCanvas();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Space Background (Image or Stars Fallback)
+            if (bgLoaded) {
+                ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = '#ffffff';
+                gameState.stars.forEach(star => {
+                    ctx.globalAlpha = star.alpha;
+                    ctx.beginPath();
+                    ctx.arc(star.x * canvas.width, star.y * canvas.height, star.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.globalAlpha = 1.0;
+            }
+
+            renderAstronautPos += (targetRenderPos - renderAstronautPos) * 0.08;
+
+            // Geometry Parameters for 16:9 Adaptability
+            const paddingX = Math.max(35, canvas.width * 0.06);
+            const lineY = canvas.height * 0.52;
+            const startX = paddingX;
+            const endX = canvas.width - paddingX;
+            const totalUnits = 20; // -10 to +10
+            const stepX = (endX - startX) / totalUnits;
+            const zeroX = startX + (10 * stepX);
+
+            const scaleRatio = Math.min(canvas.width / 800, canvas.height / 350);
+
+            // 2. Area Background Color Gradients
+            // Negative Area (-10 to 0)
+            let negGrad = ctx.createLinearGradient(startX, 0, zeroX, 0);
+            negGrad.addColorStop(0, 'rgba(128, 0, 128, 0.25)');
+            negGrad.addColorStop(1, 'rgba(255, 50, 100, 0.05)');
+            ctx.fillStyle = negGrad;
+            ctx.fillRect(startX, lineY - (40 * scaleRatio), zeroX - startX, 80 * scaleRatio);
+
+            // Positive Area (0 to +10)
+            let posGrad = ctx.createLinearGradient(zeroX, 0, endX, 0);
+            posGrad.addColorStop(0, 'rgba(0, 229, 255, 0.05)');
+            posGrad.addColorStop(1, 'rgba(0, 229, 255, 0.25)');
+            ctx.fillStyle = posGrad;
+            ctx.fillRect(zeroX, lineY - (40 * scaleRatio), endX - zeroX, 80 * scaleRatio);
+
+            // Area Labels
+            ctx.font = `bold ${Math.max(9, Math.round(11 * scaleRatio))}px Segoe UI`;
+            ctx.fillStyle = 'rgba(255, 100, 150, 0.7)';
+            ctx.textAlign = 'left';
+            ctx.fillText('WILAYAH NEGATIF (-)', startX + 10, lineY - (25 * scaleRatio));
+
+            ctx.fillStyle = 'rgba(0, 229, 255, 0.7)';
+            ctx.textAlign = 'right';
+            ctx.fillText('WILAYAH POSITIF (+)', endX - 10, lineY - (25 * scaleRatio));
+
+            // 3. Main Number Line Track
+            ctx.beginPath();
+            ctx.strokeStyle = '#4d62ad';
+            ctx.lineWidth = Math.max(3, 5 * scaleRatio);
+            ctx.lineCap = 'round';
+            ctx.moveTo(startX, lineY);
+            ctx.lineTo(endX, lineY);
+            ctx.stroke();
+
+            // Zero Highlight Line
+            ctx.beginPath();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.moveTo(zeroX, lineY - (15 * scaleRatio));
+            ctx.lineTo(zeroX, lineY + (15 * scaleRatio));
+            ctx.stroke();
+
+            // 4. Ticks and Numbers
+            const fontSize = Math.max(9, Math.round(13 * scaleRatio));
+            for (let i = -10; i <= 10; i++) {
+                let x = zeroX + (i * stepX);
+                
+                ctx.beginPath();
+                ctx.strokeStyle = (i === 0) ? '#ffffff' : (i < 0 ? '#ff5577' : '#00e5ff');
+                ctx.lineWidth = (i === 0) ? 2.5 : 1.5;
+                ctx.moveTo(x, lineY - (8 * scaleRatio));
+                ctx.lineTo(x, lineY + (8 * scaleRatio));
+                ctx.stroke();
+
+                ctx.font = (i === 0) ? `bold ${fontSize + 2}px Segoe UI` : `${fontSize}px Segoe UI`;
+                ctx.fillStyle = (i === 0) ? '#ffffff' : (i < 0 ? '#ff88aa' : '#88ffff');
+                ctx.textAlign = 'center';
+                let label = i > 0 ? `+${i}` : `${i}`;
+                ctx.fillText(label, x, lineY + (22 * scaleRatio));
+            }
+
+            function scaleToX(val) {
+                return zeroX + (val * stepX);
+            }
+
+            // 5. Target Object (Space Station)
+            if (gameState.currentQuestion) {
+                let targetX = scaleToX(gameState.targetPos);
+                let targetY = lineY - (25 * scaleRatio);
+                
+                ctx.save();
+                ctx.translate(targetX, targetY);
+                
+                let pulse = Math.sin(Date.now() * 0.005) * 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, (16 + pulse) * scaleRatio, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 255, 136, 0.2)';
+                ctx.fill();
+
+                ctx.fillStyle = '#00ff88';
+                ctx.shadowColor = '#00ff88';
+                ctx.shadowBlur = 8;
+                
+                let s = 10 * scaleRatio;
+                ctx.fillRect(-s, -s, s*2, s*2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(-s*1.4, -s*0.3, s*2.8, s*0.6);
+                ctx.fillRect(-s*0.3, -s*1.4, s*0.6, s*2.8);
+
+                ctx.restore();
+
+                ctx.font = `bold ${Math.max(9, Math.round(11 * scaleRatio))}px Segoe UI`;
+                ctx.fillStyle = '#00ff88';
+                ctx.textAlign = 'center';
+                ctx.fillText('TARGET', targetX, targetY - (20 * scaleRatio));
+            }
+
+            // 6. Astronaut Character
+            let astroX = scaleToX(renderAstronautPos);
+            let astroY = lineY - (25 * scaleRatio);
+
+            ctx.save();
+            ctx.translate(astroX, astroY);
+
+            let floatY = Math.sin(Date.now() * 0.004) * (3 * scaleRatio);
+            ctx.translate(0, floatY);
+
+            // Thruster Flame
+            if (Math.abs(targetRenderPos - renderAstronautPos) > 0.05) {
+                let movingRight = targetRenderPos > renderAstronautPos;
+                ctx.beginPath();
+                ctx.fillStyle = '#ff9900';
+                let flameOffset = (movingRight ? -14 : 14) * scaleRatio;
+                ctx.arc(flameOffset, 0, (6 + Math.random() * 3) * scaleRatio, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Astronaut Body
+            let astroSize = 12 * scaleRatio;
+            ctx.beginPath();
+            ctx.arc(0, 0, astroSize, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#00e5ff';
+            ctx.shadowBlur = 10;
+            ctx.fill();
+
+            // Visor
+            ctx.beginPath();
+            ctx.arc(2 * scaleRatio, -1 * scaleRatio, astroSize * 0.55, 0, Math.PI * 2);
+            ctx.fillStyle = '#0a192f';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(3.5 * scaleRatio, -2.5 * scaleRatio, astroSize * 0.2, 0, Math.PI * 2);
+            ctx.fillStyle = '#00e5ff';
+            ctx.fill();
+
+            // Backpack
+            ctx.fillStyle = '#a0aabf';
+            ctx.fillRect(-astroSize * 1.1, -astroSize * 0.6, astroSize * 0.4, astroSize * 1.2);
+
+            ctx.restore();
+
+            // Label Position
+            ctx.font = `bold ${Math.max(9, Math.round(11 * scaleRatio))}px Segoe UI`;
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            let currValRound = Math.round(renderAstronautPos);
+            let displayVal = currValRound > 0 ? `+${currValRound}` : `${currValRound}`;
+            ctx.fillText(`ASTRONOT (${displayVal})`, astroX, astroY - (22 * scaleRatio) + floatY);
+
+            requestAnimationFrame(draw);
+        }
+
+        // --- MODALS & GAME LIFECYCLE ---
+        function showModal(id) {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function startGame() {
+            closeModal('modal-start');
+            gameState.score = 0;
+            gameState.lives = 3;
+            gameState.level = 1;
+            generateQuestion();
+        }
+
+        function restartGame() {
+            closeModal('modal-gameover');
+            closeModal('modal-victory');
+            startGame();
+        }
+
+        // Initial setup
+        resizeCanvas();
+        requestAnimationFrame(draw);
+    </script>
+</body>
+</html>
